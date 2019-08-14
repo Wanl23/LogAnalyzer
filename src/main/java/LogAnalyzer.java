@@ -1,8 +1,13 @@
+import lombok.Getter;
+import lombok.Setter;
+
 import java.io.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Getter
+@Setter
 public class LogAnalyzer {
 
     private final Pattern pattern = Pattern.compile("\\W*((?)Exception(?-i))\\W*");
@@ -17,20 +22,22 @@ public class LogAnalyzer {
         this.resultFilename = resultFilename;
     }
 
-    public void startAnalise() throws IOException, InterruptedException {
+    public String startAnalise() throws IOException, InterruptedException {
         //Collecting logs paths
         File folder = new File(folderPath);
+        if (!folder.exists()) return "folder didnt't exist or empty";
         List<String> logs = listFilesForFolder(folder);
 
         //Main work - reading logs files and getting exceptions
         readLogs(logs);
 
         //Writing result file
-        writeStatisticToFile(resultFilename, folder, map);
+        writeStatisticToFile(resultFilename, folder);
 
         //Some information about work
         System.out.println("Result contains: " + map);
         System.out.println("Result written to: " + folder.getAbsolutePath() + "\\" + resultFilename);
+        return "completed";
     }
 
     private void readLogs(List<String> logs) throws InterruptedException {
@@ -67,7 +74,11 @@ public class LogAnalyzer {
         }
     }
 
-    private void writeStatisticToFile(String resultFilename, File folder, Map<String, Integer> map) throws IOException {
+    private String writeStatisticToFile(String resultFilename, File folder) throws IOException {
+        if (map.isEmpty()) {
+            System.out.println("There are no suitable files in your directory. Check your properties or folder for logs existing");
+            return "there are no files";
+        }
         FileWriter writer = new FileWriter(folder.getAbsolutePath() + "\\" + resultFilename);
         map.entrySet().forEach(log -> {
             try {
@@ -77,9 +88,11 @@ public class LogAnalyzer {
             }
         });
         writer.flush();
+        return "completed";
     }
 
     private List listFilesForFolder(final File folder) {
+
         List logs = new ArrayList();
         for (final File fileEntry : folder.listFiles()) {
             if (fileEntry.isDirectory()) {
