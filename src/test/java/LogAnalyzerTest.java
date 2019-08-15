@@ -45,7 +45,7 @@ class LogAnalyzerTest {
     @Test
     public void whenTryToParseEmptyFolderItShowMessageAboutMistake() throws IOException, InterruptedException {
         logAnalyzer.setFolderPath("1");
-        Assert.assertEquals("folder didnt't exist or empty", logAnalyzer.startAnalise());
+        Assert.assertFalse(logAnalyzer.startAnalise());
     }
 
     @Test
