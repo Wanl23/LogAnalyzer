@@ -13,6 +13,7 @@ public class LogAnalyzer {
     private final Pattern pattern = Pattern.compile("\\W*((?)Exception(?-i))\\W*");
 
     private ConcurrentHashMap<String, Integer> map = new ConcurrentHashMap<>();
+    private ArrayList<Thread> threads = new ArrayList<>();
 
     private String folderPath;
     private String resultFilename;
@@ -22,7 +23,7 @@ public class LogAnalyzer {
         this.resultFilename = resultFilename;
     }
 
-    public boolean startAnalise() throws IOException, InterruptedException {
+    public boolean startAnalise() {
         //Collecting logs paths
         File folder = new File(folderPath);
         if (!folder.exists()) return false;
@@ -32,7 +33,7 @@ public class LogAnalyzer {
         readLogs(logs);
 
         //Writing result file
-        if (!writeStatisticToFile(resultFilename, folder)) {
+        if (!writeStatisticToFile()) {
             System.out.println("There are no suitable files in your directory. Check your properties or folder for logs existing");
             return false;
         } else {
@@ -45,21 +46,23 @@ public class LogAnalyzer {
 
     private void readLogs(List<String> logs) {
         logs.forEach(l -> {
-                Thread thread = new Thread(() -> parseAndGetExceptions(l));
-                thread.start();
+            Thread t = new Thread(() -> parseAndGetExceptions(l));
+            t.start();
+            threads.add(t);
+        });
+        threads.forEach(t -> {
             try {
-                thread.join();
+                t.join();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         });
+        System.out.println("END");
     }
 
     private synchronized void parseAndGetExceptions(String log) {
-        BufferedReader br;
         String thisLine;
-        try {
-            br = new BufferedReader(new FileReader(log));
+        try (BufferedReader br = new BufferedReader(new FileReader(log))) {
             while (true) {
                 if ((thisLine = br.readLine()) != null) {          //read line by line
                     String[] words = thisLine.split("\\W"); //split line by any symbols to words
@@ -76,26 +79,27 @@ public class LogAnalyzer {
                     });
                 } else break;
             }
-            br.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private boolean writeStatisticToFile(String resultFilename, File folder) throws IOException {
+    private boolean writeStatisticToFile() {
         if (map.isEmpty()) {
             return false;
         }
-        FileWriter writer = new FileWriter(folder.getAbsolutePath() + "\\" + resultFilename);
+        File result = new File(folderPath + "\\" + resultFilename);
+        if (result.exists()) {
+            if (result.delete()) System.out.println("deleted existing statistic file");
+        }
+
         map.forEach((key, value) -> {
-            try {
+            try (FileWriter writer = new FileWriter(result, true)) {
                 writer.write(key + " = " + value + "\n");
             } catch (IOException e) {
                 e.printStackTrace();
             }
         });
-        writer.flush();
-        writer.close();
         return true;
     }
 

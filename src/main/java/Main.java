@@ -1,8 +1,9 @@
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 public class Main {
-    public static void main(String[] args) throws InterruptedException, IOException {
+    public static void main(String[] args) throws InterruptedException, IOException, ExecutionException {
         long start = System.currentTimeMillis();
 
         //Initializing properties
